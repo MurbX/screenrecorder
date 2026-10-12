@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ScreenRec version
+      description: Settings → General → Updates
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: textarea
+    id: setup
+    attributes:
+      label: Displays and GPU
+      description: Number of monitors, their resolution and scaling (e.g. 175%), and your graphics card(s).
+  - type: textarea
+    id: ffmpeg
+    attributes:
+      label: FFmpeg command (for recording problems)
+      description: Contents of %LOCALAPPDATA%\ScreenRec\last_ffmpeg_command.txt and any error message.
+      render: text

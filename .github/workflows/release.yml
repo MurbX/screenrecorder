@@ -1,0 +1,57 @@
+name: Release
+
+# Pushing a tag like v1.2.0 builds the installer + portable zip and publishes a GitHub Release.
+# Installed copies of ScreenRec find it through the Releases API and offer the update.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches VERSION
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION -TotalCount 1).Trim()
+          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match VERSION ($version)" }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build and package
+        shell: pwsh
+        run: ./packaging/package.ps1
+
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        run: |
+          $lines = Get-Content CHANGELOG.md
+          $start = ($lines | Select-String -Pattern "^## \[$env:VERSION\]").LineNumber
+          if (-not $start) { throw "CHANGELOG.md has no section for $env:VERSION" }
+          $notes = @()
+          foreach ($l in $lines[$start..($lines.Count - 1)]) { if ($l -match '^## \[') { break }; $notes += $l }
+          $notes += ""
+          $notes += "**Install:** download ``ScreenRec-Setup-$env:VERSION.exe`` below. Already installed? ScreenRec offers this update in Settings."
+          $notes -join "`n" | Set-Content release-notes.md
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ScreenRec ${{ env.VERSION }}
+          body_path: release-notes.md
+          files: |
+            dist/ScreenRec-Setup-${{ env.VERSION }}.exe
+            dist/ScreenRec-${{ env.VERSION }}-portable.zip
+            dist/SHA256SUMS.txt
